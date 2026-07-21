@@ -42,7 +42,9 @@ export function logAccess(entry: Omit<AccessLogEntry, "id" | "timestamp">): void
     );
 }
 
-export function listAccessLog(filters: { actor_id?: string; entity_id?: string } = {}): AccessLogEntry[] {
+export function listAccessLog(
+  filters: { actor_id?: string; entity_id?: string; endpoint_prefixes?: string[] } = {}
+): AccessLogEntry[] {
   const where: string[] = [];
   const params: string[] = [];
   if (filters.actor_id) {
@@ -52,6 +54,10 @@ export function listAccessLog(filters: { actor_id?: string; entity_id?: string }
   if (filters.entity_id) {
     where.push("entity_id = ?");
     params.push(filters.entity_id);
+  }
+  if (filters.endpoint_prefixes && filters.endpoint_prefixes.length > 0) {
+    where.push(`(${filters.endpoint_prefixes.map(() => "endpoint LIKE ?").join(" OR ")})`);
+    params.push(...filters.endpoint_prefixes.map((p) => `${p}%`));
   }
   const sql = `SELECT * FROM access_log ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id DESC LIMIT 200`;
   return getDb().prepare(sql).all(...params) as AccessLogEntry[];

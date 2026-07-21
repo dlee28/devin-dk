@@ -1,9 +1,11 @@
 "use client";
 
-// Admin-only log viewer. The page itself does not check roles - the governed
-// /api/logs endpoint returns 403 for non-admins (and logs the denial).
+// Admin-only per-app log viewer. The page itself does not check roles - the
+// governed /api/logs endpoint returns 403 for non-admins (and logs the denial).
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface LogRow {
   id: number;
@@ -13,7 +15,7 @@ interface LogRow {
 const AUDIT_COLS = ["timestamp", "actor_id", "action", "entity_type", "entity_id", "rationale", "before_state", "after_state"];
 const ACCESS_COLS = ["timestamp", "actor_id", "actor_role", "method", "endpoint", "entity_type", "entity_id", "outcome"];
 
-export default function LogsPage() {
+export default function LogsPage({ appKey, appName }: { appKey: string; appName: string }) {
   const [tab, setTab] = useState<"audit" | "access">("audit");
   const [actor, setActor] = useState("");
   const [entity, setEntity] = useState("");
@@ -21,7 +23,7 @@ export default function LogsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const params = new URLSearchParams({ type: tab });
+    const params = new URLSearchParams({ type: tab, app: appKey });
     if (actor) params.set("actor", actor);
     if (entity) params.set("entity", entity);
     const res = await fetch(`/api/logs?${params}`);
@@ -32,7 +34,7 @@ export default function LogsPage() {
     }
     setError(null);
     setRows((await res.json()).entries);
-  }, [tab, actor, entity]);
+  }, [tab, actor, entity, appKey]);
 
   useEffect(() => {
     load();
@@ -42,7 +44,10 @@ export default function LogsPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold">Audit & Access Logs</h1>
+      <Link href="/" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to launcher
+      </Link>
+      <h1 className="mb-4 mt-2 text-2xl font-semibold">{appName} — Audit & Access Logs</h1>
 
       <div className="mb-4 flex gap-2 border-b border-gray-200">
         {(["audit", "access"] as const).map((t) => (

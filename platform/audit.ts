@@ -50,7 +50,16 @@ export function writeAudit(entry: {
     );
 }
 
-export function listAuditLog(filters: { actor_id?: string; entity_id?: string } = {}): AuditLogEntry[] {
+export interface AppLogScope {
+  /** Entity types owned by the app (e.g. kyc_case). */
+  entity_types: string[];
+  /** Registry key, to include the app's own settings audit rows. */
+  app_key: string;
+}
+
+export function listAuditLog(
+  filters: { actor_id?: string; entity_id?: string; app?: AppLogScope } = {}
+): AuditLogEntry[] {
   const where: string[] = [];
   const params: string[] = [];
   if (filters.actor_id) {
@@ -60,6 +69,13 @@ export function listAuditLog(filters: { actor_id?: string; entity_id?: string } 
   if (filters.entity_id) {
     where.push("entity_id = ?");
     params.push(filters.entity_id);
+  }
+  if (filters.app) {
+    const typePlaceholders = filters.app.entity_types.map(() => "?").join(", ");
+    where.push(
+      `(entity_type IN (${typePlaceholders || "''"}) OR (entity_type = 'app_settings' AND entity_id = ?))`
+    );
+    params.push(...filters.app.entity_types, filters.app.app_key);
   }
   const sql = `SELECT * FROM audit_log ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id DESC LIMIT 200`;
   return getDb().prepare(sql).all(...params) as AuditLogEntry[];

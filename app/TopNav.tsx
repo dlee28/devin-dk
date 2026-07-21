@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Home } from "lucide-react";
 import { getCurrentUser, listUsers } from "@/platform/currentUser";
 import { UserSwitcher } from "./UserSwitcher";
 
@@ -15,8 +16,8 @@ export function TopNav() {
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <Link href="/" className="font-semibold text-gray-900 hover:text-blue-700">
-          🏠 Internal Tools
+        <Link href="/" className="inline-flex items-center gap-2 font-semibold text-gray-900 hover:text-blue-700">
+          <Home className="h-4 w-4" aria-hidden="true" /> Internal Tools
         </Link>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-gray-500">Viewing as:</span>

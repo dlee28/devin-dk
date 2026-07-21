@@ -6,6 +6,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, ScrollText } from "lucide-react";
+import { AppIcon } from "@/platform/appIcons";
 
 interface PrefDef {
   key: string;
@@ -106,11 +108,11 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
 
   return (
     <div className="max-w-2xl">
-      <Link href="/" className="text-sm text-blue-600 hover:underline">
-        ← Back to launcher
+      <Link href="/" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to launcher
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold">
-        {data.app.icon} {data.app.name} — Settings
+      <h1 className="mt-2 flex items-center gap-2 text-2xl font-semibold">
+        <AppIcon icon={data.app.icon} className="h-6 w-6 text-blue-600" /> {data.app.name} — Settings
       </h1>
       <p className="mb-6 text-sm text-gray-500">{data.app.description}</p>
 
@@ -165,6 +167,16 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
         </button>
         {!data.canManage && (
           <p className="mt-2 text-xs text-gray-400">Saving requires the admin role (server-enforced).</p>
+        )}
+        {data.canManage && (
+          <p className="mt-3 text-sm">
+            <Link
+              href={`/logs/${appKey}`}
+              className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+            >
+              <ScrollText className="h-4 w-4" aria-hidden="true" /> View this application&apos;s audit &amp; access logs
+            </Link>
+          </p>
         )}
       </section>
 

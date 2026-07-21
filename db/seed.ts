@@ -179,14 +179,5 @@ insSettings.run(
   daysAgo(14),
   "u-alex"
 );
-insSettings.run(
-  "admin-logs",
-  JSON.stringify(["admin"]),
-  "development",
-  JSON.stringify([]),
-  daysAgo(14),
-  "u-alex"
-);
-
 db.close();
-console.log(`Seeded ${dbPath}: ${users.length} users, ${cases.length} cases, 4 flags, 3 app settings.`);
+console.log(`Seeded ${dbPath}: ${users.length} users, ${cases.length} cases, 4 flags, 2 app settings.`);

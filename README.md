@@ -24,10 +24,12 @@ Apps inherit governance; they do not implement it. Every API route handler is wr
                 └───────▲──────────────▲──────────────▲──────┘
                         │  inherits    │  inherits    │  inherits
                 ┌───────┴─────┐ ┌──────┴──────┐ ┌─────┴───────┐
-                │  /apps/kyc  │ │ /apps/flags │ │ /apps/admin │
-                │ (thin app)  │ │ (thin app)  │ │ (log viewer)│
-                └─────────────┘ └─────────────┘ └─────────────┘
+                │  /apps/kyc  │ │ /apps/flags │ │/apps/settings│
+                │ (thin app)  │ │ (thin app)  │ │ (per-app cfg)│
+                └─────────────┘ └─────────────┘ └──────────────┘
 ```
+
+Every app also gets a per-app **settings page** (`/settings/<key>`: role visibility, linked database, user preferences) and a per-app **audit & access log view** (`/logs/<key>`, admin-only) — both provided by the platform, not the app.
 
 ## The three audit layers
 
@@ -45,11 +47,11 @@ Role enforcement, access logging, audit trails, and decision rules are real and 
 
 ## Demo script (~3 minutes)
 
-1. Open the launcher at `http://localhost:3000/`. You are viewing as Alex Rivera (admin); note the three app cards, including the admin-only **Audit & Access Logs**.
-2. Use the **Viewing as:** dropdown to switch to Maria Chen (reviewer). The admin logs card disappears — the launcher is filtered server-side from the app registry.
+1. Open the launcher at `http://localhost:3000/`. You are viewing as Alex Rivera (admin); each app card has settings and (admin-only) log icons.
+2. Use the **Viewing as:** dropdown to switch to Maria Chen (reviewer). The per-app log icons disappear — the launcher is filtered server-side from the app registry and settings.
 3. Open **KYC Review Queue**, filter to *pending*, and sort by risk score. High-risk cases (score ≥ 70) are flagged.
 4. Open a pending case and click **Approve** with an empty rationale — the server rejects it with a 400. Enter a rationale (10+ chars) and approve; the decision appears in the case history with before/after state.
 5. Still as Maria, try **Reassign** on any case — 403 Forbidden, because reassignment is admin-only.
-6. Try to open `/admin/logs` as Maria — 403 again.
-7. Switch back to Alex Rivera and open **Audit & Access Logs**. On the *Access log* tab, filter actor to `u-maria`: her approval, her denied reassign attempt, and her denied logs access are all recorded — the denials with `outcome=denied`, logged with zero app-level code.
+6. Try to open `/logs/kyc` as Maria — 403 again.
+7. Switch back to Alex Rivera and open the KYC card's log icon (`/logs/kyc`). On the *Access log* tab, filter actor to `u-maria`: her approval, her denied reassign attempt, and her denied logs access are all recorded — the denials with `outcome=denied`, logged with zero app-level code.
 8. (Optional) Open **Feature Flags** and toggle a staging flag; as a reviewer, toggling a production flag is denied. Every toggle is in the audit log.

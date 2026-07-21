@@ -15,6 +15,10 @@ export interface AppEntry {
   path: string;
   icon: string;
   minRoleToSee: Role;
+  /** Audit-log entity types owned by this app (for the per-app log view). */
+  logEntityTypes: string[];
+  /** API route prefix owned by this app (for access-log filtering). */
+  apiPrefix: string;
 }
 
 export const appRegistry: AppEntry[] = [
@@ -23,26 +27,26 @@ export const appRegistry: AppEntry[] = [
     name: "KYC Review Queue",
     description: "Review, approve, and reject customer identity verification cases.",
     path: "/kyc",
-    icon: "🪪",
+    icon: "id-card",
     minRoleToSee: "reviewer",
+    logEntityTypes: ["kyc_case"],
+    apiPrefix: "/api/cases",
   },
   {
     key: "flags",
     name: "Feature Flags",
     description: "Toggle feature flags across staging and production environments.",
     path: "/flags",
-    icon: "🚩",
+    icon: "flag",
     minRoleToSee: "reviewer",
-  },
-  {
-    key: "admin-logs",
-    name: "Audit & Access Logs",
-    description: "Inspect the domain audit trail and the runtime access log.",
-    path: "/admin/logs",
-    icon: "📜",
-    minRoleToSee: "admin",
+    logEntityTypes: ["feature_flag"],
+    apiPrefix: "/api/flags",
   },
 ];
+
+export function getApp(key: string): AppEntry | null {
+  return appRegistry.find((a) => a.key === key) ?? null;
+}
 
 /**
  * Role visibility is driven by each app's settings row (visible_to_roles),
