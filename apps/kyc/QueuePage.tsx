@@ -29,16 +29,21 @@ export default function QueuePage() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [showRiskWarnings, setShowRiskWarnings] = useState(true);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
 
-  // User-customizable options come from the app's settings page.
+  // User-customizable options come from the app's settings page. Cases are
+  // not fetched until prefs resolve, so the default tab applies to the first
+  // load instead of racing with it.
   useEffect(() => {
     fetch("/api/apps/kyc/prefs")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!data) return;
-        if (typeof data.prefs.default_status_tab === "string") setStatus(data.prefs.default_status_tab);
-        if (typeof data.prefs.show_risk_warnings === "boolean") setShowRiskWarnings(data.prefs.show_risk_warnings);
-      });
+        if (data) {
+          if (typeof data.prefs.default_status_tab === "string") setStatus(data.prefs.default_status_tab);
+          if (typeof data.prefs.show_risk_warnings === "boolean") setShowRiskWarnings(data.prefs.show_risk_warnings);
+        }
+      })
+      .finally(() => setPrefsLoaded(true));
   }, []);
 
   const load = useCallback(async () => {
@@ -56,8 +61,8 @@ export default function QueuePage() {
   }, [status, sort, dir]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (prefsLoaded) load();
+  }, [load, prefsLoaded]);
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const toggleSort = (col: "created_at" | "risk_score") => {
