@@ -38,3 +38,4 @@ next-env.d.ts
 # SQLite databases (recreated by `npm run seed`)
 db/*.sqlite
 db/*.sqlite-*
+db/data/

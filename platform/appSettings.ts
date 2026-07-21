@@ -2,16 +2,13 @@
  * PLATFORM LAYER - per-application settings.
  * Each registered app has one app_settings row controlling:
  *   - visible_to_roles: which roles see the app in the launcher,
- *   - linked_database:  which data source the app is wired to,
+ *   - linked_database:  which registered data database the app reads/writes,
  *   - customizable:     which options individual users may set for themselves.
  * Admin edits go through /api/apps/[key]/settings (manage_app_settings);
  * user pref values live in user_app_prefs, scoped to the acting user.
  */
 import { getDb } from "./config";
 import type { Role } from "./roles";
-
-export const LINKED_DATABASES = ["development", "staging", "production"] as const;
-export type LinkedDatabase = (typeof LINKED_DATABASES)[number];
 
 export interface PrefDef {
   key: string;
@@ -24,7 +21,7 @@ export interface PrefDef {
 export interface AppSettings {
   app_key: string;
   visible_to_roles: Role[];
-  linked_database: LinkedDatabase;
+  linked_database: string;
   customizable: PrefDef[];
   updated_at: string;
   updated_by: string | null;
@@ -33,7 +30,7 @@ export interface AppSettings {
 interface SettingsRow {
   app_key: string;
   visible_to_roles: string;
-  linked_database: LinkedDatabase;
+  linked_database: string;
   customizable: string;
   updated_at: string;
   updated_by: string | null;
@@ -64,7 +61,7 @@ export function getAllAppSettings(): Map<string, AppSettings> {
 
 export function updateAppSettings(
   appKey: string,
-  changes: { visible_to_roles: Role[]; linked_database: LinkedDatabase },
+  changes: { visible_to_roles: Role[]; linked_database: string },
   actorId: string
 ): AppSettings {
   const updatedAt = new Date().toISOString();

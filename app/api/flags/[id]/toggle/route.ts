@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
-import { getDb } from "@/platform/config";
+import { getAppDb } from "@/platform/databases";
 import { writeAudit } from "@/platform/audit";
 import { hasPermission } from "@/platform/roles";
 
@@ -19,7 +19,7 @@ export const POST = withGovernance(
     entityType: "feature_flag",
     getEntityId: (_req, ctx) => ctx.params.id,
     authorize: (actor, _req, ctx) => {
-      const flag = getDb()
+      const flag = getAppDb("flags")
         .prepare("SELECT environment FROM feature_flags WHERE id = ?")
         .get(ctx.params.id) as { environment: string } | undefined;
       if (flag?.environment === "production" && !hasPermission(actor.role, "toggle_production_flag")) {
@@ -30,7 +30,7 @@ export const POST = withGovernance(
   },
   async (req, ctx, actor) => {
     const body = (await req.json().catch(() => ({}))) as { rationale?: string };
-    const db = getDb();
+    const db = getAppDb("flags");
     const flag = db.prepare("SELECT * FROM feature_flags WHERE id = ?").get(ctx.params.id) as FlagRow | undefined;
     if (!flag) return NextResponse.json({ error: "Flag not found" }, { status: 404 });
 

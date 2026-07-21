@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
-import { getDb } from "@/platform/config";
+import { getAppDb } from "@/platform/databases";
 import { randomUUID } from "node:crypto";
 
 export const POST = withGovernance(
@@ -14,7 +14,7 @@ export const POST = withGovernance(
     const text = (body.body ?? "").trim();
     if (!text) return NextResponse.json({ error: "Note body is required" }, { status: 400 });
 
-    const db = getDb();
+    const db = getAppDb("kyc");
     const exists = db.prepare("SELECT id FROM kyc_cases WHERE id = ?").get(ctx.params.id);
     if (!exists) return NextResponse.json({ error: "Case not found" }, { status: 404 });
 

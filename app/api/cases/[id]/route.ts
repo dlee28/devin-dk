@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
-import { getDb } from "@/platform/config";
+import { getAppDb } from "@/platform/databases";
 import { auditHistoryForEntity } from "@/platform/audit";
 
 // Case detail: case fields, notes, and this case's audit history (Layer 3),
@@ -12,13 +12,13 @@ export const GET = withGovernance(
     getEntityId: (_req, ctx) => ctx.params.id,
   },
   async (_req, ctx) => {
-    const db = getDb();
+    const db = getAppDb("kyc");
     const kycCase = db
       .prepare(
         `SELECT c.*, u.name AS assignee_name, d.name AS decided_by_name
          FROM kyc_cases c
-         LEFT JOIN users u ON u.id = c.assigned_to
-         LEFT JOIN users d ON d.id = c.decided_by
+         LEFT JOIN platform.users u ON u.id = c.assigned_to
+         LEFT JOIN platform.users d ON d.id = c.decided_by
          WHERE c.id = ?`
       )
       .get(ctx.params.id);
@@ -27,7 +27,7 @@ export const GET = withGovernance(
     const notes = db
       .prepare(
         `SELECT n.*, u.name AS author_name FROM case_notes n
-         JOIN users u ON u.id = n.author_id
+         JOIN platform.users u ON u.id = n.author_id
          WHERE n.case_id = ? ORDER BY n.created_at DESC`
       )
       .all(ctx.params.id);

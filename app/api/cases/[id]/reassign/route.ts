@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
-import { getDb } from "@/platform/config";
+import { getAppDb } from "@/platform/databases";
 import { writeAudit } from "@/platform/audit";
 
 // W4: reassignment (admin-only via 'reassign_case' permission). Sets
@@ -18,13 +18,13 @@ export const POST = withGovernance(
       return NextResponse.json({ error: "assigned_to is required" }, { status: 400 });
     }
 
-    const db = getDb();
+    const db = getAppDb("kyc");
     const kycCase = db.prepare("SELECT * FROM kyc_cases WHERE id = ?").get(ctx.params.id) as
       | { id: string; status: string; assigned_to: string | null }
       | undefined;
     if (!kycCase) return NextResponse.json({ error: "Case not found" }, { status: 404 });
 
-    const assignee = db.prepare("SELECT id FROM users WHERE id = ?").get(body.assigned_to);
+    const assignee = db.prepare("SELECT id FROM platform.users WHERE id = ?").get(body.assigned_to);
     if (!assignee) return NextResponse.json({ error: "Assignee not found" }, { status: 400 });
 
     const newStatus = kycCase.status === "pending" ? "in_review" : kycCase.status;

@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
 import { appRegistry } from "@/platform/appRegistry";
-import {
-  getAppSettings,
-  updateAppSettings,
-  LINKED_DATABASES,
-  type LinkedDatabase,
-} from "@/platform/appSettings";
+import { getAppSettings, updateAppSettings } from "@/platform/appSettings";
+import { databaseExists, listDatabases } from "@/platform/databases";
 import { writeAudit } from "@/platform/audit";
 import { hasPermission, type Role } from "@/platform/roles";
 
@@ -26,7 +22,7 @@ export const GET = withGovernance(
     return NextResponse.json({
       app: { key: app.key, name: app.name, description: app.description, icon: app.icon },
       settings,
-      databases: LINKED_DATABASES,
+      databases: listDatabases().map((d) => d.name),
       roles: ROLES,
       canManage: hasPermission(actor.role, "manage_app_settings"),
     });
@@ -65,16 +61,16 @@ export const PUT = withGovernance(
     }
 
     const database = body.linked_database;
-    if (typeof database !== "string" || !LINKED_DATABASES.includes(database as LinkedDatabase)) {
+    if (typeof database !== "string" || !databaseExists(database)) {
       return NextResponse.json(
-        { error: `linked_database must be one of: ${LINKED_DATABASES.join(", ")}` },
+        { error: "linked_database must be a registered database" },
         { status: 400 }
       );
     }
 
     const after = updateAppSettings(
       ctx.params.key,
-      { visible_to_roles: roles as Role[], linked_database: database as LinkedDatabase },
+      { visible_to_roles: roles as Role[], linked_database: database },
       actor.id
     );
 

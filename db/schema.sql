@@ -1,6 +1,9 @@
 -- =============================================================================
--- Internal Tools Prototype - full schema
--- SQLite (better-sqlite3). Applied by `npm run seed` (db/seed.ts).
+-- Internal Tools Prototype - PLATFORM schema (db/platform.sqlite)
+-- Users, governance logs, settings, and the database registry live here.
+-- App domain data (cases, notes, flags) lives in the linked data databases
+-- (db/data/<name>.sqlite, schema in db/data-schema.sql).
+-- Applied by `npm run seed` (db/seed.ts).
 -- =============================================================================
 
 -- Seeded users. Role enforcement is real; authentication is stubbed (see
@@ -11,29 +14,15 @@ CREATE TABLE IF NOT EXISTS users (
   role       TEXT NOT NULL CHECK (role IN ('reviewer', 'admin'))
 );
 
--- KYC cases under review. Fictional data only.
-CREATE TABLE IF NOT EXISTS kyc_cases (
-  id             TEXT PRIMARY KEY,
-  customer_name  TEXT NOT NULL,
-  customer_email TEXT NOT NULL,
-  date_of_birth  TEXT NOT NULL,
-  country        TEXT NOT NULL,
-  document_type  TEXT NOT NULL CHECK (document_type IN ('passport', 'drivers_license', 'national_id')),
-  risk_score     INTEGER NOT NULL CHECK (risk_score BETWEEN 0 AND 100),
-  status         TEXT NOT NULL CHECK (status IN ('pending', 'in_review', 'approved', 'rejected')),
-  assigned_to    TEXT REFERENCES users(id),
-  created_at     TEXT NOT NULL,
-  decided_at     TEXT,
-  decided_by     TEXT REFERENCES users(id)
-);
-
--- Free-form reviewer notes attached to a case.
-CREATE TABLE IF NOT EXISTS case_notes (
-  id         TEXT PRIMARY KEY,
-  case_id    TEXT NOT NULL REFERENCES kyc_cases(id),
-  author_id  TEXT NOT NULL REFERENCES users(id),
-  body       TEXT NOT NULL,
-  created_at TEXT NOT NULL
+-- Registry of linkable data databases. Each row corresponds to a SQLite file
+-- at db/data/<name>.sqlite holding app domain data (see db/data-schema.sql).
+-- Managed from app settings pages: admins can link (create) and remove
+-- databases; an app's app_settings.linked_database selects which one it
+-- actually reads and writes.
+CREATE TABLE IF NOT EXISTS databases (
+  name       TEXT PRIMARY KEY CHECK (name GLOB '[a-z0-9-]*'),
+  created_at TEXT NOT NULL,
+  created_by TEXT REFERENCES users(id)
 );
 
 -- ---------------------------------------------------------------------------
@@ -70,13 +59,13 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 -- Per-application settings, managed from each app's settings page.
--- visible_to_roles drives launcher/registry visibility; linked_database is the
--- data source label the app reads from; customizable defines which options
+-- visible_to_roles drives launcher/registry visibility; linked_database names
+-- the registered database the app reads and writes; customizable defines which options
 -- individual users may set for themselves (see user_app_prefs).
 CREATE TABLE IF NOT EXISTS app_settings (
   app_key          TEXT PRIMARY KEY,
   visible_to_roles TEXT NOT NULL,  -- JSON array of roles, e.g. ["reviewer","admin"]
-  linked_database  TEXT NOT NULL CHECK (linked_database IN ('development', 'staging', 'production')),
+  linked_database  TEXT NOT NULL REFERENCES databases(name),
   customizable     TEXT NOT NULL,  -- JSON array of user-customizable pref definitions
   updated_at       TEXT NOT NULL,
   updated_by       TEXT REFERENCES users(id)
@@ -90,16 +79,6 @@ CREATE TABLE IF NOT EXISTS user_app_prefs (
   value      TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (user_id, app_key, pref_key)
-);
-
--- Feature flags (stretch app /apps/flags - second thin app on the platform).
-CREATE TABLE IF NOT EXISTS feature_flags (
-  id          TEXT PRIMARY KEY,
-  key         TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL,
-  enabled     INTEGER NOT NULL DEFAULT 0,
-  environment TEXT NOT NULL CHECK (environment IN ('staging', 'production')),
-  updated_at  TEXT NOT NULL
 );
 
 -- ---------------------------------------------------------------------------

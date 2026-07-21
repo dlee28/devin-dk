@@ -8,7 +8,7 @@ A prototype for a **build-vs-buy evaluation — not production**. It rebuilds on
 
 ```bash
 npm install
-npm run seed     # creates and populates db/dev.sqlite
+npm run seed     # creates db/platform.sqlite + db/data/{development,staging,production}.sqlite
 npm run dev      # → http://localhost:3000
 ```
 
@@ -30,6 +30,8 @@ Apps inherit governance; they do not implement it. Every API route handler is wr
 ```
 
 Every app also gets a per-app **settings page** (`/settings/<key>`: role visibility, linked database, user preferences) and a per-app **audit & access log view** (`/logs/<key>`, admin-only) — both provided by the platform, not the app.
+
+**Databases are real and separable.** The platform database (`db/platform.sqlite`) holds users, governance logs, settings, and a registry of data databases; app domain data (cases, notes, flags) lives in separate SQLite files (`db/data/<name>.sqlite`). Each app's settings select which registered database it reads and writes (`getAppDb`), so relinking KYC from `development` to `staging` genuinely changes the data it serves. Admins can also **link new databases** (created empty with the domain schema) and **remove** ones no app links to — every link/remove/relink is audited.
 
 ## The three audit layers
 
@@ -55,3 +57,4 @@ Role enforcement, access logging, audit trails, and decision rules are real and 
 6. Try to open `/logs/kyc` as Maria — 403 again.
 7. Switch back to Alex Rivera and open the KYC card's log icon (`/logs/kyc`). On the *Access log* tab, filter actor to `u-maria`: her approval, her denied reassign attempt, and her denied logs access are all recorded — the denials with `outcome=denied`, logged with zero app-level code.
 8. (Optional) Open **Feature Flags** and toggle a staging flag; as a reviewer, toggling a production flag is denied. Every toggle is in the audit log.
+9. (Optional) As Alex, open the KYC card's gear icon and switch **Linked database** from `development` to `staging` — the queue now shows the staging dataset (different cases). In the same section, link a brand-new database or remove an unlinked one; removal is refused while any app still links it.

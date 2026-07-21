@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
-import { getDb } from "@/platform/config";
+import { getAppDb } from "@/platform/databases";
 import { writeAudit } from "@/platform/audit";
 
 // W5: override (admin-only via 'override_decision' permission). Reopens a
@@ -22,7 +22,7 @@ export const POST = withGovernance(
       );
     }
 
-    const db = getDb();
+    const db = getAppDb("kyc");
     const kycCase = db.prepare("SELECT * FROM kyc_cases WHERE id = ?").get(ctx.params.id) as
       | { id: string; status: string; decided_at: string | null; decided_by: string | null }
       | undefined;

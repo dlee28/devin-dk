@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withGovernance } from "@/platform/withGovernance";
-import { getDb } from "@/platform/config";
+import { getAppDb } from "@/platform/databases";
 import { writeAudit } from "@/platform/audit";
 import { hasPermission } from "@/platform/roles";
 
@@ -21,7 +21,7 @@ export const POST = withGovernance(
     // but not one assigned to someone else. Evaluated by the platform wrapper
     // so the denial is uniformly logged as outcome='denied'.
     authorize: (actor, _req, ctx) => {
-      const row = getDb()
+      const row = getAppDb("kyc")
         .prepare("SELECT assigned_to FROM kyc_cases WHERE id = ?")
         .get(ctx.params.id) as { assigned_to: string | null } | undefined;
       if (
@@ -51,7 +51,7 @@ export const POST = withGovernance(
       );
     }
 
-    const db = getDb();
+    const db = getAppDb("kyc");
     const kycCase = db.prepare("SELECT * FROM kyc_cases WHERE id = ?").get(ctx.params.id) as CaseRow | undefined;
     if (!kycCase) return NextResponse.json({ error: "Case not found" }, { status: 404 });
 
