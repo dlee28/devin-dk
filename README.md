@@ -1,4 +1,4 @@
-# Internal Tools Prototype — KYC Review Queue on a Shared Governance Layer
+# Internal Tools Prototype
 
 ## What this is
 
