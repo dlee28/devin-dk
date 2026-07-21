@@ -12,26 +12,20 @@ npm run seed     # creates db/platform.sqlite + db/data/{development,staging,pro
 npm run dev      # → http://localhost:3000
 ```
 
-## Architecture
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the architecture overview and the reasoning behind the shared governance layer.
 
-Apps inherit governance; they do not implement it. Every API route handler is wrapped by `withGovernance(...)`, which resolves the actor, checks the declared permission against the role map, and writes an access-log row for every request — allowed or denied. App code under `/apps` contains pages and components only: no role checks, no log writes.
+## Features and apps
 
-```
-                ┌────────────────────────────────────────────┐
-                │   /platform  (SHARED GOVERNANCE LAYER)     │
-                │  roles · withGovernance · accessLog        │
-                │  audit · currentUser · config · registry   │
-                └───────▲──────────────▲──────────────▲──────┘
-                        │  inherits    │  inherits    │  inherits
-                ┌───────┴─────┐ ┌──────┴──────┐ ┌─────┴───────┐
-                │  /apps/kyc  │ │ /apps/flags │ │/apps/settings│
-                │ (thin app)  │ │ (thin app)  │ │ (per-app cfg)│
-                └─────────────┘ └─────────────┘ └──────────────┘
-```
+| Route | App | Features |
+|---|---|---|
+| `/` | Launcher | Grid of installed apps rendered from the platform registry, filtered server-side by the current user's role. Each card links to the app, its settings page, and (admin-only) its logs. Includes the stubbed **Viewing as:** user switcher. |
+| `/kyc` | KYC Review Queue | Case queue with status tabs (pending / in review / approved / rejected), sorting by date or risk score, and high-risk flagging (score ≥ 70). Default tab and risk warnings are user preferences from the app's settings page. |
+| `/kyc/[id]` | KYC Case Detail | Full case view with notes, decision history (before/after state), and actions: approve / reject (rationale required, 10+ chars), reassign (admin-only), and override a prior decision (admin-only). The page never checks roles — the governed API accepts or denies each action. |
+| `/flags` | Feature Flags | Toggle flags per environment; reviewers can toggle staging but not production (denied server-side). Compact-row display is a user preference. Every toggle is audited. |
+| `/settings/[key]` | Per-app Settings | Admin controls: which roles can see the app, and which registered database it is linked to (relinking genuinely changes the data served). Admins can link new databases (created empty with the domain schema) and remove unlinked ones — all audited. Also holds per-user preferences for the app. |
+| `/logs/[key]` | Per-app Audit & Access Logs | Admin-only viewer with two tabs — the domain audit trail and the runtime access log — filterable by actor and entity. Non-admin access returns 403 and the denial itself is logged. |
 
-Every app also gets a per-app **settings page** (`/settings/<key>`: role visibility, linked database, user preferences) and a per-app **audit & access log view** (`/logs/<key>`, admin-only) — both provided by the platform, not the app.
-
-**Databases are real and separable.** The platform database (`db/platform.sqlite`) holds users, governance logs, settings, and a registry of data databases; app domain data (cases, notes, flags) lives in separate SQLite files (`db/data/<name>.sqlite`). Each app's settings select which registered database it reads and writes (`getAppDb`), so relinking KYC from `development` to `staging` genuinely changes the data it serves. Admins can also **link new databases** (created empty with the domain schema) and **remove** ones no app links to — every link/remove/relink is audited.
+The settings and logs pages are provided by the platform, not by each app — every registered app gets them for free.
 
 ## The three audit layers
 
@@ -47,14 +41,3 @@ Both log tables are append-only: the platform exposes insert-only functions and 
 
 Role enforcement, access logging, audit trails, and decision rules are real and server-enforced. Authentication is stubbed with a "Viewing as:" user switcher (no login). See [PROTOTYPE-GAPS.md](./PROTOTYPE-GAPS.md) for the full list of gaps and rough production effort.
 
-## Demo script (~3 minutes)
-
-1. Open the launcher at `http://localhost:3000/`. You are viewing as Alex Rivera (admin); each app card has settings and (admin-only) log icons.
-2. Use the **Viewing as:** dropdown to switch to Maria Chen (reviewer). The per-app log icons disappear — the launcher is filtered server-side from the app registry and settings.
-3. Open **KYC Review Queue**, filter to *pending*, and sort by risk score. High-risk cases (score ≥ 70) are flagged.
-4. Open a pending case and click **Approve** with an empty rationale — the server rejects it with a 400. Enter a rationale (10+ chars) and approve; the decision appears in the case history with before/after state.
-5. Still as Maria, try **Reassign** on any case — 403 Forbidden, because reassignment is admin-only.
-6. Try to open `/logs/kyc` as Maria — 403 again.
-7. Switch back to Alex Rivera and open the KYC card's log icon (`/logs/kyc`). On the *Access log* tab, filter actor to `u-maria`: her approval, her denied reassign attempt, and her denied logs access are all recorded — the denials with `outcome=denied`, logged with zero app-level code.
-8. (Optional) Open **Feature Flags** and toggle a staging flag; as a reviewer, toggling a production flag is denied. Every toggle is in the audit log.
-9. (Optional) As Alex, open the KYC card's gear icon and switch **Linked database** from `development` to `staging` — the queue now shows the staging dataset (different cases). In the same section, link a brand-new database or remove an unlinked one; removal is refused while any app still links it.
