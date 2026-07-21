@@ -11,18 +11,19 @@ export function formatDate(iso: string | null): string {
   });
 }
 
-export function RiskBadge({ score }: { score: number }) {
-  // Visually flag high-risk cases (score >= 70).
-  const cls =
-    score >= 70
-      ? "bg-red-100 text-red-800 ring-1 ring-red-300"
-      : score >= 40
-        ? "bg-yellow-100 text-yellow-800"
-        : "bg-green-100 text-green-800";
+export function RiskBadge({ score, warn = true }: { score: number; warn?: boolean }) {
+  // Visually flag high-risk cases (score >= 70). `warn` is user-customizable
+  // via the KYC app's settings page.
+  const highlight = warn && score >= 70;
+  const cls = highlight
+    ? "bg-red-100 text-red-800 ring-1 ring-red-300"
+    : score >= 70 || score >= 40
+      ? "bg-yellow-100 text-yellow-800"
+      : "bg-green-100 text-green-800";
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>
       {score}
-      {score >= 70 ? " ⚠" : ""}
+      {highlight ? " ⚠" : ""}
     </span>
   );
 }

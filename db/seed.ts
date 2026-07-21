@@ -154,5 +154,39 @@ insFlag.run("flag-2", "new-onboarding-flow-prod", "Redesigned customer onboardin
 insFlag.run("flag-3", "risk-model-v2", "Second-generation risk scoring model", 1, "staging", daysAgo(4));
 insFlag.run("flag-4", "instant-payouts", "Instant payout rail for verified customers", 0, "production", daysAgo(2));
 
+// --- per-app settings ----------------------------------------------------------
+const insSettings = db.prepare(
+  "INSERT INTO app_settings (app_key, visible_to_roles, linked_database, customizable, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?)"
+);
+insSettings.run(
+  "kyc",
+  JSON.stringify(["reviewer", "admin"]),
+  "development",
+  JSON.stringify([
+    { key: "default_status_tab", label: "Default queue tab", type: "select", options: ["all", "pending", "in_review", "approved", "rejected"], default: "all" },
+    { key: "show_risk_warnings", label: "Highlight high-risk cases (\u2265 70)", type: "boolean", default: true },
+  ]),
+  daysAgo(14),
+  "u-alex"
+);
+insSettings.run(
+  "flags",
+  JSON.stringify(["reviewer", "admin"]),
+  "development",
+  JSON.stringify([
+    { key: "compact_rows", label: "Compact table rows", type: "boolean", default: false },
+  ]),
+  daysAgo(14),
+  "u-alex"
+);
+insSettings.run(
+  "admin-logs",
+  JSON.stringify(["admin"]),
+  "development",
+  JSON.stringify([]),
+  daysAgo(14),
+  "u-alex"
+);
+
 db.close();
-console.log(`Seeded ${dbPath}: ${users.length} users, ${cases.length} cases, 4 flags.`);
+console.log(`Seeded ${dbPath}: ${users.length} users, ${cases.length} cases, 4 flags, 3 app settings.`);

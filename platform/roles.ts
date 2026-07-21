@@ -15,7 +15,9 @@ export type Permission =
   | "override_decision"     // override a finalized decision
   | "view_logs"             // view audit + access logs in UI
   | "toggle_staging_flag"   // flags app: toggle staging flags
-  | "toggle_production_flag"; // flags app: toggle production flags
+  | "toggle_production_flag"  // flags app: toggle production flags
+  | "view_app_settings"      // read an app's settings + own customizable prefs
+  | "manage_app_settings";   // change app visibility, linked database, customizable options
 
 export interface User {
   id: string;
@@ -24,7 +26,7 @@ export interface User {
 }
 
 const PERMISSIONS: Record<Role, Permission[]> = {
-  reviewer: ["view_cases", "decide_case", "toggle_staging_flag"],
+  reviewer: ["view_cases", "decide_case", "toggle_staging_flag", "view_app_settings"],
   admin: [
     "view_cases",
     "decide_case",
@@ -34,6 +36,8 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     "view_logs",
     "toggle_staging_flag",
     "toggle_production_flag",
+    "view_app_settings",
+    "manage_app_settings",
   ],
 };
 

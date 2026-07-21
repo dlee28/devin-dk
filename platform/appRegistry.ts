@@ -6,6 +6,7 @@
 // mirrors Retool's model: the platform knows about apps, apps don't know
 // about each other.
 import type { Role } from "./roles";
+import { getAllAppSettings } from "./appSettings";
 
 export interface AppEntry {
   key: string;
@@ -43,7 +44,16 @@ export const appRegistry: AppEntry[] = [
   },
 ];
 
-/** Role visibility: 'reviewer' entries are visible to everyone; 'admin' entries to admins only. */
+/**
+ * Role visibility is driven by each app's settings row (visible_to_roles),
+ * editable from the app's settings page. Registry minRoleToSee is the
+ * fallback for apps without a settings row.
+ */
 export function appsVisibleTo(role: Role): AppEntry[] {
-  return appRegistry.filter((app) => app.minRoleToSee === "reviewer" || role === "admin");
+  const settings = getAllAppSettings();
+  return appRegistry.filter((app) => {
+    const s = settings.get(app.key);
+    if (s) return s.visible_to_roles.includes(role);
+    return app.minRoleToSee === "reviewer" || role === "admin";
+  });
 }

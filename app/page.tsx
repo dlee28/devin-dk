@@ -17,15 +17,24 @@ export default function LauncherPage() {
       </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app) => (
-          <Link
+          <div
             key={app.key}
-            href={app.path}
-            className="block rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-blue-400 hover:shadow"
+            className="relative rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-blue-400 hover:shadow"
           >
-            <div className="mb-2 text-3xl">{app.icon}</div>
-            <div className="font-semibold">{app.name}</div>
-            <div className="mt-1 text-sm text-gray-500">{app.description}</div>
-          </Link>
+            <Link
+              href={`/settings/${app.key}`}
+              aria-label={`${app.name} settings`}
+              title={`${app.name} settings`}
+              className="absolute right-3 top-3 z-10 rounded p-1 text-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            >
+              ⚙
+            </Link>
+            <Link href={app.path} className="block">
+              <div className="mb-2 text-3xl">{app.icon}</div>
+              <div className="font-semibold">{app.name}</div>
+              <div className="mt-1 text-sm text-gray-500">{app.description}</div>
+            </Link>
+          </div>
         ))}
       </div>
     </div>

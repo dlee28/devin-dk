@@ -69,6 +69,29 @@ CREATE TABLE IF NOT EXISTS audit_log (
   timestamp    TEXT NOT NULL
 );
 
+-- Per-application settings, managed from each app's settings page.
+-- visible_to_roles drives launcher/registry visibility; linked_database is the
+-- data source label the app reads from; customizable defines which options
+-- individual users may set for themselves (see user_app_prefs).
+CREATE TABLE IF NOT EXISTS app_settings (
+  app_key          TEXT PRIMARY KEY,
+  visible_to_roles TEXT NOT NULL,  -- JSON array of roles, e.g. ["reviewer","admin"]
+  linked_database  TEXT NOT NULL CHECK (linked_database IN ('development', 'staging', 'production')),
+  customizable     TEXT NOT NULL,  -- JSON array of user-customizable pref definitions
+  updated_at       TEXT NOT NULL,
+  updated_by       TEXT REFERENCES users(id)
+);
+
+-- Per-user values for the customizable options an app's settings expose.
+CREATE TABLE IF NOT EXISTS user_app_prefs (
+  user_id    TEXT NOT NULL REFERENCES users(id),
+  app_key    TEXT NOT NULL REFERENCES app_settings(app_key),
+  pref_key   TEXT NOT NULL,
+  value      TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, app_key, pref_key)
+);
+
 -- Feature flags (stretch app /apps/flags - second thin app on the platform).
 CREATE TABLE IF NOT EXISTS feature_flags (
   id          TEXT PRIMARY KEY,

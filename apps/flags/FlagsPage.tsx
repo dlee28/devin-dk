@@ -19,6 +19,16 @@ interface Flag {
 export default function FlagsPage() {
   const [flags, setFlags] = useState<Flag[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [compact, setCompact] = useState(false);
+
+  // User-customizable option from the app's settings page.
+  useEffect(() => {
+    fetch("/api/apps/flags/prefs")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.prefs.compact_rows === "boolean") setCompact(data.prefs.compact_rows);
+      });
+  }, []);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/flags");
@@ -62,9 +72,9 @@ export default function FlagsPage() {
           <tbody>
             {flags.map((f) => (
               <tr key={f.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-4 py-3 font-mono text-xs">{f.key}</td>
-                <td className="px-4 py-3">{f.description}</td>
-                <td className="px-4 py-3">
+                <td className={`px-4 font-mono text-xs ${compact ? "py-1" : "py-3"}`}>{f.key}</td>
+                <td className={`px-4 ${compact ? "py-1" : "py-3"}`}>{f.description}</td>
+                <td className={`px-4 ${compact ? "py-1" : "py-3"}`}>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       f.environment === "production" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-700"
@@ -73,7 +83,7 @@ export default function FlagsPage() {
                     {f.environment}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 ${compact ? "py-1" : "py-3"}`}>
                   <button
                     onClick={() => toggle(f.id)}
                     className={`relative h-6 w-11 rounded-full transition ${f.enabled ? "bg-green-500" : "bg-gray-300"}`}
@@ -84,7 +94,7 @@ export default function FlagsPage() {
                     />
                   </button>
                 </td>
-                <td className="px-4 py-3 text-gray-500">{new Date(f.updated_at).toLocaleDateString()}</td>
+                <td className={`px-4 text-gray-500 ${compact ? "py-1" : "py-3"}`}>{new Date(f.updated_at).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>

@@ -28,6 +28,18 @@ export default function QueuePage() {
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
+  const [showRiskWarnings, setShowRiskWarnings] = useState(true);
+
+  // User-customizable options come from the app's settings page.
+  useEffect(() => {
+    fetch("/api/apps/kyc/prefs")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (typeof data.prefs.default_status_tab === "string") setStatus(data.prefs.default_status_tab);
+        if (typeof data.prefs.show_risk_warnings === "boolean") setShowRiskWarnings(data.prefs.show_risk_warnings);
+      });
+  }, []);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/cases?status=${status}&sort=${sort}&dir=${dir}`);
@@ -106,7 +118,7 @@ export default function QueuePage() {
                 <td className="px-4 py-3">{c.country}</td>
                 <td className="px-4 py-3">{c.document_type.replace("_", " ")}</td>
                 <td className="px-4 py-3">
-                  <RiskBadge score={c.risk_score} />
+                  <RiskBadge score={c.risk_score} warn={showRiskWarnings} />
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={c.status} />
