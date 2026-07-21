@@ -1,5 +1,8 @@
 # Internal Tools Prototype
 
+## Loom video
+https://www.loom.com/share/6c6531eed96848a3991b65ed7b5703fc
+
 ## What this is
 
 A prototype for a **build-vs-buy evaluation — not production**. It rebuilds one of our Retool internal tools (the KYC review queue) on a small in-house platform layer that provides what Retool actually gives us: role-based access control, automatic access logging, and audit trails that every app inherits without per-app code. A second thin app (feature flags) is included to show the marginal cost of the next app once the layer exists.
