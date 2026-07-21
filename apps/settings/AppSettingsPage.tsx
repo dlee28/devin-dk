@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ScrollText } from "lucide-react";
+import { ArrowLeft, Database, Plus, ScrollText, Trash2 } from "lucide-react";
 import { AppIcon } from "@/platform/appIcons";
 
 interface PrefDef {
@@ -15,6 +15,13 @@ interface PrefDef {
   type: "select" | "boolean";
   options?: string[];
   default: string | boolean;
+}
+
+interface DatabaseInfo {
+  name: string;
+  created_at: string;
+  created_by: string | null;
+  linked_by: string[];
 }
 
 interface SettingsPayload {
@@ -35,14 +42,17 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [visibleRoles, setVisibleRoles] = useState<string[]>([]);
   const [database, setDatabase] = useState("");
+  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
+  const [newDbName, setNewDbName] = useState("");
   const [prefs, setPrefs] = useState<Record<string, string | boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [settingsRes, prefsRes] = await Promise.all([
+    const [settingsRes, prefsRes, dbRes] = await Promise.all([
       fetch(`/api/apps/${appKey}/settings`),
       fetch(`/api/apps/${appKey}/prefs`),
+      fetch(`/api/databases`),
     ]);
     if (!settingsRes.ok) {
       setError((await settingsRes.json()).error ?? "Failed to load settings");
@@ -53,6 +63,7 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
     setVisibleRoles(payload.settings.visible_to_roles);
     setDatabase(payload.settings.linked_database);
     if (prefsRes.ok) setPrefs((await prefsRes.json()).prefs);
+    if (dbRes.ok) setDatabases((await dbRes.json()).databases);
     setError(null);
   }, [appKey]);
 
@@ -76,6 +87,35 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
       return;
     }
     setNotice("Application settings saved.");
+    await load();
+  };
+
+  const linkNewDb = async () => {
+    setError(null);
+    setNotice(null);
+    const res = await fetch(`/api/databases`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newDbName.trim() }),
+    });
+    if (!res.ok) {
+      setError((await res.json()).error ?? `Request failed (${res.status})`);
+      return;
+    }
+    setNotice(`Database '${newDbName.trim()}' linked.`);
+    setNewDbName("");
+    await load();
+  };
+
+  const removeDb = async (name: string) => {
+    setError(null);
+    setNotice(null);
+    const res = await fetch(`/api/databases/${name}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError((await res.json()).error ?? `Request failed (${res.status})`);
+      return;
+    }
+    setNotice(`Database '${name}' removed.`);
     await load();
   };
 
@@ -157,6 +197,9 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-gray-400">
+            The app reads and writes this database. Switching it changes the data the app serves.
+          </p>
         </div>
 
         <button
@@ -179,6 +222,56 @@ export default function AppSettingsPage({ appKey }: { appKey: string }) {
           </p>
         )}
       </section>
+
+      {data.canManage && (
+        <section className="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="font-semibold">Databases (admin)</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Databases registered on the platform and available for linking. Removing a database
+            deletes its data and is refused while any application is linked to it.
+          </p>
+          <ul className="mb-4 divide-y divide-gray-100">
+            {databases.map((d) => (
+              <li key={d.name} className="flex items-center gap-2 py-2 text-sm">
+                <Database className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                <span className="font-mono">{d.name}</span>
+                <span className="text-xs text-gray-400">
+                  {d.linked_by.length > 0 ? `linked by: ${d.linked_by.join(", ")}` : "not linked"}
+                </span>
+                <button
+                  onClick={() => removeDb(d.name)}
+                  disabled={d.linked_by.length > 0}
+                  title={
+                    d.linked_by.length > 0
+                      ? `Still linked by ${d.linked_by.join(", ")}`
+                      : `Remove database '${d.name}'`
+                  }
+                  aria-label={`Remove database ${d.name}`}
+                  className="ml-auto rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-center gap-2">
+            <input
+              value={newDbName}
+              onChange={(e) => setNewDbName(e.target.value)}
+              placeholder="new-database-name"
+              aria-label="New database name"
+              className="rounded border border-gray-300 px-2 py-1 font-mono text-sm"
+            />
+            <button
+              onClick={linkNewDb}
+              disabled={!newDbName.trim()}
+              className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" /> Link new database
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="font-semibold">Your preferences</h2>
